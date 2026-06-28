@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Powder Stock Check V2.0</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 450px; margin: auto; background: #f4f6f9; color: #333; }
+        .card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        h2 { margin-top: 0; color: #111; font-size: 22px; text-align: center; }
+        video, img { width: 100%; border-radius: 10px; margin-top: 15px; display: block; border: 1px solid #ddd; }
+        button { width: 100%; padding: 16px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: background 0.2s; }
+        .btn-snap { background: #007bff; color: white; }
+        .btn-snap:hover { background: #0056b3; }
+        .btn-submit { background: #28a745; color: white; width: 100%; }
+        .btn-submit:hover { background: #218838; }
+        label { display: block; font-weight: bold; margin-top: 20px; font-size: 14px; color: #555; }
+        input { width: 100%; padding: 14px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-size: 18px; text-align: center; }
+        input:focus { border-color: #007bff; outline: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Powder Stock Check V2.0</h2>
+        <video id="video" autoplay playsinline></video>
+        <img id="preview" style="display:none;"/>
+        <button id="snapBtn" class="btn-snap">Snap Label Photo</button>
+        
+        <div id="formSection" style="display:none;">
+            <label for="qty">Enter Physical Quantity Count:</label>
+            <input type="number" id="qty" placeholder="0" inputmode="numeric">
+            <button id="submitBtn" class="btn-submit">Upload to Spreadsheet</button>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const preview = document.getElementById('preview');
+        const snapBtn = document.getElementById('snapBtn');
+        const formSection = document.getElementById('formSection');
+        const submitBtn = document.getElementById('submitBtn');
+        let base64Img = "";
+
+        // ⚠️ REPLACE THIS STRING WITH YOUR LIVE CLOUDFLARE WORKER URL
+        const CLOUDFLARE_WORKER_URL = "fullpowderstockcheckv2.danleewright.workers.dev";
+
+        // Access rear device camera automatically
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => alert("Camera entry error: " + err));
+
+        // Snapshot view image canvas mapping
+        snapBtn.addEventListener('click', () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            base64Img = canvas.toDataURL('image/jpeg');
+            preview.src = base64Img;
+            preview.style.display = "block";
+            video.style.display = "none";
+            snapBtn.style.display = "none";
+            formSection.style.display = "block";
+        });
+
+        // Submit parameters payload directly to Cloudflare
+        submitBtn.addEventListener('click', async () => {
+            const qty = document.getElementById('qty').value;
+            if(!qty || parseInt(qty) < 0) return alert("Please enter a valid quantity.");
+            
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Analyzing via AI Backend...";
+
+            try {
+                const response = await fetch(CLOUDFLARE_WORKER_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ image: base64Img, qty: parseInt(qty) })
+                });
+                
+                const resData = await response.json();
+                if(resData.status === "success") {
+                    alert("Stock entry recorded successfully!");
+                    location.reload();
+                } else {
+                    throw new Error(resData.error || "Submission rejected");
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Upload to Spreadsheet";
+            }
+        });
+    </script>
+</body>
+</html>
