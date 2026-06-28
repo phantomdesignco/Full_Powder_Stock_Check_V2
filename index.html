@@ -12,19 +12,31 @@
         button { width: 100%; padding: 16px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: background 0.2s; }
         .btn-snap { background: #007bff; color: white; }
         .btn-snap:hover { background: #0056b3; }
+        .btn-upload { background: #6c757d; color: white; }
+        .btn-upload:hover { background: #5a6268; }
         .btn-submit { background: #28a745; color: white; width: 100%; }
         .btn-submit:hover { background: #218838; }
         label { display: block; font-weight: bold; margin-top: 20px; font-size: 14px; color: #555; }
-        input { width: 100%; padding: 14px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-size: 18px; text-align: center; }
+        input[type="number"] { width: 100%; padding: 14px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; font-size: 18px; text-align: center; }
         input:focus { border-color: #007bff; outline: none; }
+        /* Hide default file input button */
+        #fileInput { display: none; }
     </style>
 </head>
 <body>
     <div class="card">
         <h2>Powder Stock Check V2.0</h2>
+        
         <video id="video" autoplay playsinline></video>
+        
         <img id="preview" style="display:none;"/>
+        
         <button id="snapBtn" class="btn-snap">Snap Label Photo</button>
+        
+        <label id="uploadLabel" for="fileInput" class="button btn-upload" style="display: block; text-align: center; padding: 16px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 15px; background: #6c757d; color: white;">
+            Upload Image / Use Phone Camera
+        </label>
+        <input type="file" id="fileInput" accept="image/*">
         
         <div id="formSection" style="display:none;">
             <label for="qty">Enter Physical Weight (in Kilos):</label>
@@ -37,19 +49,24 @@
         const video = document.getElementById('video');
         const preview = document.getElementById('preview');
         const snapBtn = document.getElementById('snapBtn');
+        const uploadLabel = document.getElementById('uploadLabel');
+        const fileInput = document.getElementById('fileInput');
         const formSection = document.getElementById('formSection');
         const submitBtn = document.getElementById('submitBtn');
         let base64Img = "";
 
-        // ⚠️ REPLACE THIS STRING WITH YOUR LIVE CLOUDFLARE WORKER URL
         const CLOUDFLARE_WORKER_URL = "https://fullpowderstockcheckv2.danleewright.workers.dev";
 
-        // Access rear device camera automatically
+        // Initialize inline web view camera
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
             .then(stream => { video.srcObject = stream; })
-            .catch(err => alert("Camera entry error: " + err));
+            .catch(err => {
+                // If inline camera fails or is blocked, rely entirely on file input option
+                video.style.display = "none";
+                snapBtn.style.display = "none";
+            });
 
-        // Snapshot view image canvas mapping
+        // Handle Snapping a Photo from the web view
         snapBtn.addEventListener('click', () => {
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
@@ -57,12 +74,37 @@
             canvas.getContext('2d').drawImage(video, 0, 0);
             
             base64Img = canvas.toDataURL('image/jpeg');
-            preview.src = base64Img;
+            processSelectedImage(base64Img);
+        });
+
+        // Handle File Upload or Native Camera App selection
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                base64Img = event.target.result;
+                processSelectedImage(base64Img);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Clear layout and show preview + entry forms
+        function processSelectedImage(imgSrc) {
+            preview.src = imgSrc;
             preview.style.display = "block";
+            
+            // Turn off inline camera stream if it's active
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+            
             video.style.display = "none";
             snapBtn.style.display = "none";
+            uploadLabel.style.display = "none";
             formSection.style.display = "block";
-        });
+        }
 
         // Submit parameters payload directly to Cloudflare
         submitBtn.addEventListener('click', async () => {
