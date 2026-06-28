@@ -2,137 +2,247 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Powder Stock Check</title>
     <style>
         :root {
-            --bg-color: #12141c;
-            --card-bg: #1e2230;
+            --bg-gradient: linear-gradient(135deg, #0f111a 0%, #16192b 100%);
+            --card-bg: rgba(30, 34, 54, 0.7);
+            --card-border: rgba(255, 255, 255, 0.06);
             --text-main: #ffffff;
-            --text-muted: #8a90a6;
+            --text-muted: #94a3b8;
             --primary: #3b82f6;
-            --primary-hover: #2563eb;
+            --primary-glow: rgba(59, 130, 246, 0.4);
             --success: #10b981;
-            --success-hover: #059669;
-            --secondary: #4b5563;
-            --border: #2d334a;
+            --success-glow: rgba(16, 185, 129, 0.3);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.4);
+            --secondary: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            padding: 16px; 
-            max-width: 480px; 
-            margin: auto; 
-            background: var(--bg-color); 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; 
+            min-height: 100vh;
+            background: var(--bg-gradient); 
             color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
             -webkit-font-smoothing: antialiased;
         }
 
         .card { 
             background: var(--card-bg); 
-            padding: 24px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            border: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            width: 100%;
+            max-width: 420px; 
+            padding: 32px 24px; 
+            border-radius: 24px; 
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 var(--card-border);
+            border: 1px solid var(--card-border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .header-group {
+            text-align: center;
+            margin-bottom: 28px;
         }
 
         h2 { 
-            margin: 0 0 8px 0; 
-            color: var(--text-main); 
-            font-size: 24px; 
-            text-align: center;
+            font-size: 26px; 
             font-weight: 700;
             letter-spacing: -0.5px;
+            background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
         }
 
         .subtitle {
-            text-align: center;
             color: var(--text-muted);
             font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-wrapper {
+            display: flex;
+            justify-content: center;
             margin-bottom: 24px;
         }
 
         .queue-badge {
-            background: rgba(59, 130, 246, 0.2);
-            color: #60a5fa;
-            padding: 6px 12px;
-            border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
-            display: inline-block;
-            margin-bottom: 15px;
-            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 6px 16px;
+            border-radius: 100px;
+            letter-spacing: 0.2px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .video-container {
-            position: relative;
+        .badge-synced {
+            background: rgba(16, 185, 129, 0.12);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.1);
+        }
+
+        .badge-uploading {
+            background: rgba(245, 158, 11, 0.12);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.1);
+        }
+
+        .pulse-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        .view-viewport {
             width: 100%;
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
-            background: #000;
-            border: 1px solid var(--border);
-            margin-top: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+            transform: scale(0.98);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: none;
+        }
+
+        .view-viewport.active {
+            transform: scale(1);
+            opacity: 1;
+            display: block;
         }
 
         video, img { 
             width: 100%; 
             display: block; 
+            object-fit: cover;
         }
 
-        button, .btn-label { 
-            display: block;
+        button, .btn-file-label { 
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: 100%; 
             padding: 16px; 
             border: none; 
-            border-radius: 12px; 
+            border-radius: 14px; 
             font-size: 16px; 
             font-weight: 600; 
             cursor: pointer; 
-            margin-top: 14px; 
-            transition: all 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             box-sizing: border-box;
             text-align: center;
+            margin-top: 12px;
         }
 
-        .btn-start { background: var(--primary); color: white; }
-        .btn-start:hover { background: var(--primary-hover); }
+        button:active, .btn-file-label:active {
+            transform: scale(0.98);
+        }
+
+        .btn-start { 
+            background: var(--primary); 
+            color: white; 
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+        .btn-start:hover { background: #2563eb; }
         
-        .btn-snap { background: #e11d48; color: white; }
-        .btn-snap:hover { background: #be123c; }
+        .btn-snap { 
+            background: var(--danger); 
+            color: white; 
+            box-shadow: 0 4px 14px var(--danger-glow);
+        }
+        .btn-snap:hover { background: #dc2626; }
         
-        .btn-upload { background: var(--secondary); color: white; }
-        .btn-upload:hover { background: #374151; }
+        .btn-upload { 
+            background: var(--secondary); 
+            color: #cbd5e1; 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .btn-upload:hover { background: #3f51b5; color: white; }
         
-        .btn-submit { background: var(--success); color: white; }
-        .btn-submit:hover { background: var(--success-hover); }
+        .btn-submit { 
+            background: var(--success); 
+            color: white; 
+            box-shadow: 0 4px 14px var(--success-glow);
+            margin-top: 20px;
+        }
+        .btn-submit:hover { background: #059669; }
+
+        .form-group {
+            margin-top: 20px;
+            transform: translateY(10px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .form-group.active {
+            transform: translateY(0);
+            opacity: 1;
+            display: block;
+        }
 
         label.input-heading { 
             display: block; 
             font-weight: 600; 
-            margin-top: 24px; 
-            font-size: 14px; 
+            font-size: 12px; 
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            text-align: center;
         }
 
         input[type="number"] { 
             width: 100%; 
-            padding: 16px; 
-            margin-top: 8px; 
-            box-sizing: border-box; 
+            padding: 18px; 
             border: 2px solid var(--border); 
-            background: rgba(0,0,0,0.2);
+            background: rgba(0, 0, 0, 0.25);
             color: white;
-            border-radius: 12px; 
-            font-size: 22px; 
+            border-radius: 14px; 
+            font-size: 28px; 
             font-weight: 700;
             text-align: center; 
+            transition: all 0.2s ease;
         }
         input[type="number"]:focus { 
             border-color: var(--primary); 
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
             outline: none; 
-            background: rgba(0,0,0,0.4);
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        /* Webkit specific visual polish */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
 
         #fileInput { display: none; }
@@ -140,31 +250,37 @@
 </head>
 <body>
     <div class="card">
-        <h2>Powder Stock Check</h2>
-        <div style="text-align: center;">
-            <span id="queueStatus" class="queue-badge">All synced up</span>
+        <div class="header-group">
+            <h2>Powder Stock Check</h2>
+            <div class="subtitle">Live Inventory System</div>
+        </div>
+
+        <div class="status-wrapper">
+            <span id="queueStatus" class="queue-badge badge-synced">
+                <span class="pulse-dot"></span><span id="statusText">All synced up</span>
+            </span>
         </div>
         
-        <div id="cameraContainer" class="video-container" style="display:none;">
+        <div id="cameraContainer" class="view-viewport">
             <video id="video" autoplay playsinline></video>
         </div>
         
-        <div id="previewContainer" class="video-container" style="display:none;">
-            <img id="preview" />
+        <div id="previewContainer" class="view-viewport">
+            <img id="preview" alt="Captured label preview"/>
         </div>
         
         <button id="startBtn" class="btn-start">Open Scanner Camera</button>
         <button id="snapBtn" class="btn-snap" style="display:none;">Capture Box Label</button>
         
-        <label id="uploadLabel" for="fileInput" class="btn-label btn-upload">
+        <label id="uploadLabel" for="fileInput" class="btn-file-label btn-upload">
             Upload from Photo Library
         </label>
         <input type="file" id="fileInput" accept="image/*">
         
-        <div id="formSection" style="display:none;">
+        <div id="formSection" class="form-group">
             <label for="qty" class="input-heading">Physical Weight (Kilos)</label>
             <input type="number" id="qty" placeholder="0.0" inputmode="decimal" step="any">
-            <button id="submitBtn" class="btn-submit">Add to Queue & Next Scan</button>
+            <button id="submitBtn" class="btn-submit">Commit & Next Scan</button>
         </div>
     </div>
 
@@ -180,6 +296,7 @@
         const formSection = document.getElementById('formSection');
         const submitBtn = document.getElementById('submitBtn');
         const queueStatus = document.getElementById('queueStatus');
+        const statusText = document.getElementById('statusText');
         
         let base64Img = "";
         let uploadQueue = [];
@@ -187,7 +304,7 @@
 
         const CLOUDFLARE_WORKER_URL = "https://fullpowderstockcheckv2.danleewright.workers.dev";
 
-        // Step 1: Open camera lens on button click
+        // Step 1: Open stream securely on user interaction
         startBtn.addEventListener('click', () => {
             startBtn.innerText = "Initializing Lens...";
             startBtn.disabled = true;
@@ -195,18 +312,19 @@
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
                 .then(stream => {
                     video.srcObject = stream;
-                    cameraContainer.style.display = "block";
-                    snapBtn.style.display = "block";
+                    cameraContainer.classList.add('active');
+                    snapBtn.style.display = "flex";
                     startBtn.style.display = "none";
                     uploadLabel.style.display = "none";
                 })
                 .catch(err => {
-                    alert("Camera integration blocked. Use manual upload option.");
-                    startBtn.style.display = "none";
+                    alert("Camera integration blocked. Please use manual file selection.");
+                    startBtn.disabled = false;
+                    startBtn.innerText = "Open Scanner Camera";
                 });
         });
 
-        // Step 2: Capture image frame
+        // Step 2: Canvas image capture snapshot transformation
         snapBtn.addEventListener('click', () => {
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
@@ -217,7 +335,7 @@
             processSelectedImage(base64Img);
         });
 
-        // Step 2 Alternative: File input mapping
+        // Step 2 Alternative: File picker input parsing 
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -229,64 +347,60 @@
             reader.readAsDataURL(file);
         });
 
-        // Step 3: Turn off camera tracking and show input form
+        // Step 3: Clear active lenses tracking and mount data capture input forms
         function processSelectedImage(imgSrc) {
             preview.src = imgSrc;
-            previewContainer.style.display = "block";
+            previewContainer.classList.add('active');
             
             if (video.srcObject) {
                 video.srcObject.getTracks().forEach(track => track.stop());
             }
             
-            cameraContainer.style.display = "none";
+            cameraContainer.classList.remove('active');
             snapBtn.style.display = "none";
             startBtn.style.display = "none";
             uploadLabel.style.display = "none";
-            formSection.style.display = "block";
+            formSection.classList.add('active');
+            
+            // Auto focus input field for immediate entry
+            setTimeout(() => document.getElementById('qty').focus(), 150);
         }
 
-        // Step 4: Drop scanned item into memory queue and instantly reset UI
+        // Step 4: Add entry row object into local system memory queues
         submitBtn.addEventListener('click', () => {
             const qty = document.getElementById('qty').value;
-            if(!qty || parseFloat(qty) < 0) return alert("Please enter a valid weight.");
+            if(!qty || parseFloat(qty) < 0) return alert("Please enter a valid weight parameter.");
             
-            // Push data payload into queue array
             uploadQueue.push({ image: base64Img, qty: parseFloat(qty) });
             updateQueueBadge();
 
-            // Fire off background upload processor without waiting for it
             processNextQueueItem();
 
-            // INSTANTLY RESET UI FOR THE NEXT BOX
+            // INSTANT UI ROLLBACK FLUSH FOR SPEED SCANNING
             base64Img = "";
             document.getElementById('qty').value = "";
-            previewContainer.style.display = "none";
-            formSection.style.display = "none";
+            previewContainer.classList.remove('active');
+            formSection.classList.remove('active');
             
-            // Return straight back to the fresh open camera state
             startBtn.disabled = false;
             startBtn.innerText = "Open Scanner Camera";
-            startBtn.style.display = "block";
-            uploadLabel.style.display = "block";
+            startBtn.style.display = "flex";
+            uploadLabel.style.display = "flex";
         });
 
-        // Update the status indicator badge at the top
+        // Dynamic status layout styling state switcher
         function updateQueueBadge() {
             const count = uploadQueue.length;
             if (count === 0) {
-                queueStatus.innerText = "All synced up";
-                queueStatus.style.background = "rgba(16, 185, 129, 0.2)";
-                queueStatus.style.color = "#34d399";
-                queueStatus.style.borderColor = "rgba(16, 185, 129, 0.3)";
+                statusText.innerText = "All synced up";
+                queueStatus.className = "queue-badge badge-synced";
             } else {
-                queueStatus.innerText = `Uploading ${count} box${count > 1 ? 'es' : ''} in background...`;
-                queueStatus.style.background = "rgba(245, 158, 11, 0.2)";
-                queueStatus.style.color = "#fbbf24";
-                queueStatus.style.borderColor = "rgba(245, 158, 11, 0.3)";
+                statusText.innerText = `Uploading ${count} box${count > 1 ? 'es' : ''}...`;
+                queueStatus.className = "queue-badge badge-uploading";
             }
         }
 
-        // Asynchronous background processing pipeline loop
+        // Background worker loop running tasks concurrently
         async function processNextQueueItem() {
             if (isProcessingQueue || uploadQueue.length === 0) return;
             isProcessingQueue = true;
@@ -302,21 +416,18 @@
                 
                 const resData = await response.json();
                 if(resData.status === "success") {
-                    // Success: Remove the item from queue
                     uploadQueue.shift();
                 } else {
-                    console.error("Server execution rejected item:", resData.error);
-                    alert("Error processing box label: " + resData.error + "\nRetrying in 5 seconds...");
-                    await new Promise(r => setTimeout(r, 5000)); // wait before retrying
+                    console.error("Cloudflare runtime error execution reject:", resData.error);
+                    await new Promise(r => setTimeout(r, 5000));
                 }
             } catch (err) {
-                console.error("Network upload drop:", err);
-                await new Promise(r => setTimeout(r, 5000)); // connection failure timeout fallback
+                console.error("Network transfer interrupt drop:", err);
+                await new Promise(r => setTimeout(r, 5000));
             }
 
             isProcessingQueue = false;
             updateQueueBadge();
-            // Loop back to handle remaining queued data objects
             processNextQueueItem();
         }
     </script>
